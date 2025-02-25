@@ -16,6 +16,9 @@ This lab will simulate an office network with the following components:
 -  VoIP Phones: Phones that use the network to make calls.
 -  Computers (PC1 & PC2): Regular office computers.
 
+  **IP Address Plan:**
+  ![](https://i.imgur.com/y7FV8u1.png)
+
  **3.  Setting Up the Network (Connecting the Pieces):**
 -  Router to CloudTP: Connect a cable from the Router (Serial2/0) to the CloudTP. This is our internet connection.
 -  Important: The CloudTP needs to be configured to act as an internet gateway. This usually involves setting up a connection to a simulated ISP within the CloudTP                configuration.
@@ -47,7 +50,28 @@ This lab will simulate an office network with the following components:
   -  ip address 192.168.10.1 255.255.255.0 (IP address for VLAN 10)
   -  no shutdown
   -  exit
-interface FastEthernet0/0.20 (Repeat for VLAN 20, 30, and 99, changing IP addresses accordingly)
+ (Repeat for VLAN 20, 30, and 99, changing IP addresses accordingly)
+
+ **VLAN 20 - Phones**
+-  interface FastEthernet0/0.20
+-  encapsulation dot1Q 20
+-  ip address 192.168.20.1 255.255.255.0
+-  no shutdown
+ -  exit
+
+**VLAN 30 - Servers (DHCP & Web)**
+-  interface FastEthernet0/0.30
+ -  encapsulation dot1Q 30
+ -  ip address 192.168.30.1 255.255.255.0
+ -  no shutdown
+ -  exit
+
+**VLAN 99 - Management (Switch Management VLAN)**
+-  interface FastEthernet0/0.99
+ -  encapsulation dot1Q 99
+ -  ip address 192.168.99.1 255.255.255.0
+ -  no shutdown
+ -  exit
 
 **Default Route (to the internet):**
 
@@ -76,6 +100,8 @@ Connect to Switch: Connect a console cable to the switch and use terminal softwa
 -  exit
 
 ###  2. Assign VLANs to Access Ports (PCs, Phones, and Servers)
+-  ![](https://i.imgur.com/qvmMmcl.png)
+
 **PC Ports (Fa2/1 & Fa7/1) - VLAN 10**
 
 -  interface FastEthernet2/1
@@ -200,6 +226,71 @@ The phones should automatically get IP addresses from the DHCP server (VLAN 20).
 **Check DHCP:**
 show ip dhcp binding
 
+###  Configure the CloudTP as an ISP
+1. Assign an IP Address to the Cloud Interface
+  -  Open the CloudTP device.
+  -  Click on the "Config" tab.
+  -  Select "Serial0" (the interface connecting to the router).
+  - Set the following configurations:
+    -  Port Status: On
+    -  Encapsulation: PPP
+    -  IP Address: 203.0.113.1
+    -  Subnet Mask: 255.255.255.0
+
+### Configure the Router’s Serial2/0 Interface
+On your router, enter configuration mode:
+-  enable
+-   configure terminal
+-  Enter interface configuration mode for Serial2/0:
+    - interface Serial2/0
+    -  ip address 203.0.113.2 255.255.255.0
+    -  encapsulation ppp
+    -  no shutdown
+    -  exit
+**Verify the connection:**
+-  Router# show ip interface brief
+-  Ensure the Serial2/0 interface is UP.
+
+**Step 3: Set the Default Route to the Cloud**
+To allow the router to forward all external traffic to CloudTP (ISP), configure a default static route:
+-  Router(config)# ip route 0.0.0.0 0.0.0.0 203.0.113.1
+-  This means:
+-  Any traffic with an unknown destination (i.e., the internet) will be sent to 203.0.113.1 (CloudTP).
+
+###  Step 4: Enable NAT (Optional, for LAN to Internet)
+If your LAN (e.g., VLAN 10, VLAN 20) needs internet access, configure NAT (Network Address Translation) on the router.
+1. Enable NAT on the Routert
+-   access-list 1 permit 192.168.1.0 0.0.0.255
+-  access-list 1 permit 192.168.30.0 0.0.0.255
+
+-  interface Serial2/0
+-  ip nat outside
+-  exit
+
+-   interface FastEthernet6/
+-   ip nat inside
+-    exit
+
+ip nat inside source list 1 interface Serial2/0 overload
+
+**2. Test Internet Connectivity**
+From a PC in VLAN 10, test by pinging Google's DNS (8.8.8.8):
+
+PC> ping 8.8.8.8
+If the ping works, your CloudTP is successfully simulating an ISP!
+
+**Final Verification**
+-  show ip route
+You should see:
+S*   0.0.0.0/0 [1/0] via 203.0.113.1
+
+**Check NAT Translations:**
+-  Router# show ip nat translations
+-  Check Serial Interface Status:
+    -  show interfaces Serial2/0
+    -  Ensure it is UP/UP.
+
+Now your CloudTP is acting as an ISP, and your router can reach the internet! 
 ### Conclusion
 Your Cisco office lab is now set up with: 
 - Two Floors
@@ -210,3 +301,8 @@ Your Cisco office lab is now set up with:
 - CloudTP (Internet) Connection
 
 This lab covers networking, VoIP, DHCP, web hosting, and security best practices
+Final Thoughts
+CloudTP's Serial0 acts as the ISP gateway (203.0.113.1).
+Router's Serial2/0 is the WAN interface (203.0.113.2).
+FastEthernet6/1 (or the correct LAN interface) connects your local devices.
+NAT is configured to allow multiple LAN devices to access the internet.
