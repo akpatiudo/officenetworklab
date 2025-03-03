@@ -16,10 +16,11 @@ As the IT Technician, set up the network using the outline below:
  - 6. Configure each PC to obtain an IP address via DHCP.
  - 7. Configure the phones to communicate with each other and send data.
  - 8. Verifies Communication:
-   - a. Extablish a Call from Hr to IT department
+   - a. Establish a Call from Hr to IT department
    - b. Pc0 in IT pings laptop1 in Hr
    - c. Pc02 in Sales pings Pc4 in Hr
-   - d. Show the ICMP activitives captured by the phone
+   - d. Show the TCPP activities captured by the phone
+   - Verifies Communication:
   
  ### 1. Draw the necessary topology, add appropriate decorations, and provide comments.
 
